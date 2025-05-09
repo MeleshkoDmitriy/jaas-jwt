@@ -46,39 +46,46 @@ const PORT = process.env.PORT || 3000;
 app.post('/generate-token', (req, res) => {
   const { name, email, avatar, isModerator } = req.body;
 
-  if (!name || !email || isModerator === undefined) {
-    return res.status(400).json({ error: 'Missing required user fields' });
+  if (!name || !email || typeof isModerator !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid user fields' });
   }
 
   const now = Math.floor(Date.now() / 1000);
 
   const payload = {
     aud: 'jitsi',
+    iss: 'chat',
+    sub: appId,
+    room: '*',
+    exp: now + 3 * 60 * 60,
+    nbf: now - 10,
     context: {
       user: {
         id: uuid(),
         name,
         email,
         avatar,
-        moderator: isModerator,
+        moderator: isModerator
       },
       features: {
         livestreaming: 'true',
         recording: 'true',
         transcription: 'true',
-        "outbound-call": 'true',
+        'outbound-call': 'true'
+      },
+      room: {
+        regex: false
       }
-    },
-    iss: 'chat',
-    room: '*',
-    sub: appId,
-    exp: now + 3 * 60 * 60,
-    nbf: now - 10
+    }
   };
 
   const token = jwt.sign(payload, privateKey, {
     algorithm: 'RS256',
-    header: { kid }
+    header: {
+      alg: 'RS256',
+      typ: 'JWT',
+      kid
+    }
   });
 
   res.json({ token });
